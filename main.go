@@ -21,18 +21,16 @@ type Router struct {
 // }
 
 func initClientConnection() bpb.BirthdayFunctionsClient {
-
 	conn, err := grpc.Dial(
 		"localhost:8000",
 		grpc.WithInsecure(),
 		grpc.FailOnNonTempDialError(true),
 		grpc.WithBlock(),
 	)
-
 	if err != nil {
 		log.Fatalln("error: ", err)
 	}
-	// defer conn.Close()
+	defer conn.Close()
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
 
@@ -40,12 +38,12 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 }
 
 func (r *Router) CreateBirthday(c *gin.Context) {
-	// name := c.Request.Form.Get("name")
-	// personalNumber := c.Request.Form.Get("personalNumber")
-	// date := c.Request.Form.Get("date")
+	name := c.Request.FormValue("name")
+	personalNumber := c.Request.FormValue("personalNumber")
+	date := c.Request.FormValue("date")
 
 	request := &bpb.CreateBirthdayRequest{
-		PersonalNumber: bpb.BirthdayObject.PersonalNumber, Name: bpb.BirthdayObject.Name, Date: bpb.BirthdayObject.Date}
+		PersonalNumber: personalNumber, Name: name, Date: date}
 	res, err := r.client.CreateBirthday(c, request)
 	if err != nil {
 		fmt.Println("create birthday method failed. error: ", err)
@@ -67,10 +65,16 @@ func (r *Router) GetBirthday(c *gin.Context) {
 }
 
 func (r *Router) UpdateBirthday(c *gin.Context) {
+	personalNumber := c.Request.FormValue("personalNumber")
+	name := c.Request.FormValue("name")
+	date := c.Request.FormValue("date")
 
-	c.JSON(200, gin.H{
-		"message": "recieved and updated a birthday succesfully",
-	})
+	request := &bpb.UpdateBirthdayRequest{PersonalNumber: personalNumber, Name: name, Date: date}
+	res, err := r.client.UpdateBirthday(c, request)
+	if err != nil {
+		fmt.Println("update birthday method failed. error: ", err)
+	}
+	c.JSON(200, res)
 }
 
 func (r *Router) DeleteBirthday(c *gin.Context) {
@@ -90,7 +94,6 @@ func main() {
 	r.client = initClientConnection()
 
 	mainRouter := gin.Default()
-
 	mainRouter.POST("/api/createBirthday", r.CreateBirthday)
 	mainRouter.GET("/api/getBirthday/query", r.GetBirthday)
 	mainRouter.POST("/api/updateBirthday", r.UpdateBirthday)
@@ -98,6 +101,6 @@ func main() {
 
 	err := mainRouter.Run(":9000")
 	if err != nil {
-		log.Fatalln("error: ", err)
+		log.Fatalln("failed to run api-gateway router. error: ", err)
 	}
 }
