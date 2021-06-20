@@ -13,13 +13,6 @@ type Router struct {
 	client bpb.BirthdayFunctionsClient
 }
 
-// type BirthdayObject struct {
-// 	Name           string
-// 	Date           string
-// 	PersonalNumber string
-// 	ID             string `bson:"_id" json:"id,omitempty"`
-// }
-
 func initClientConnection() bpb.BirthdayFunctionsClient {
 	conn, err := grpc.Dial(
 		"localhost:8000",
