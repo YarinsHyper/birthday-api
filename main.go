@@ -9,10 +9,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+//router that's connecting to the client
+//functions in the bd-service proto file
 type Router struct {
 	client bpb.BirthdayFunctionsClient
 }
 
+//function that creates a new client and connects
+//to the bd-service client through the proto file
 func initClientConnection() bpb.BirthdayFunctionsClient {
 	conn, err := grpc.Dial(
 		"localhost:8000",
@@ -30,6 +34,7 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 	return client
 }
 
+//function that inserts a birthday object
 func (r *Router) CreateBirthday(c *gin.Context) {
 	name := c.Request.FormValue("name")
 	personalNumber := c.Request.FormValue("personalNumber")
@@ -45,6 +50,7 @@ func (r *Router) CreateBirthday(c *gin.Context) {
 	c.JSON(200, res)
 }
 
+//function that read/get all birthday objects
 func (r *Router) GetBirthday(c *gin.Context) {
 	personalNumber := c.Query("personalNumber")
 
@@ -57,6 +63,7 @@ func (r *Router) GetBirthday(c *gin.Context) {
 	c.JSON(200, res)
 }
 
+//function that updates a birthday object by personalNumber
 func (r *Router) UpdateBirthday(c *gin.Context) {
 	personalNumber := c.Request.FormValue("personalNumber")
 	name := c.Request.FormValue("name")
@@ -70,6 +77,7 @@ func (r *Router) UpdateBirthday(c *gin.Context) {
 	c.JSON(200, res)
 }
 
+//function that deletes a certain birthday object by personal number
 func (r *Router) DeleteBirthday(c *gin.Context) {
 	personalNumber := c.Query("personalNumber")
 
