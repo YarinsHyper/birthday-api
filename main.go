@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	bpb "github.com/yarinBenisty/birthday-service/proto"
@@ -50,6 +52,27 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 	return client
 }
 
+func corsRouterConfig() cors.Config {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AddExposeHeaders("x-uploadid")
+	corsConfig.AllowAllOrigins = false
+	corsConfig.AllowWildcard = true
+	corsConfig.AllowOrigins = strings.Split("http://localhost*", ",")
+	corsConfig.AllowCredentials = true
+	corsConfig.AddAllowHeaders(
+		"x-content-length",
+		"authorization",
+		"cache-control",
+		"x-requested-with",
+		"content-disposition",
+		"content-range",
+		"destination",
+		"fileID",
+	)
+
+	return corsConfig
+}
+
 //CreateBirthday inserts a birthday object
 func (r *Router) CreateBirthday(c *gin.Context) {
 
@@ -58,7 +81,6 @@ func (r *Router) CreateBirthday(c *gin.Context) {
 		Name:           c.Request.FormValue(name),
 		Date:           c.Request.FormValue(date),
 	}
-
 	res, err := r.client.CreateBirthday(c, request)
 	if err != nil {
 		fmt.Println("create birthday error: ", err)
@@ -68,7 +90,7 @@ func (r *Router) CreateBirthday(c *gin.Context) {
 	c.JSON(201, res)
 }
 
-// GetBirthday read/get all birthday objects
+// GetBirthday get a birthday object
 func (r *Router) GetBirthday(c *gin.Context) {
 
 	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Query(personalNumber)}
@@ -76,6 +98,19 @@ func (r *Router) GetBirthday(c *gin.Context) {
 	if err != nil {
 		fmt.Println("get birthday error: ", err)
 		c.String(404, "get birthday method failed. \nerror: %s", err)
+		os.Exit(5)
+	}
+	c.JSON(200, res)
+}
+
+//GetAllBirthday gets all birthday objects
+func (r *Router) GetAllBirthday(c *gin.Context) {
+
+	request := &bpb.GetAllBirthdayRequest{}
+	res, err := r.client.GetAllBirthday(c, request)
+	if err != nil {
+		fmt.Println("get all birthday error: ", err)
+		c.String(404, "get all birthday method failed. \nerror: %s", err)
 		os.Exit(5)
 	}
 	c.JSON(200, res)
@@ -121,9 +156,13 @@ func main() {
 	mainRouter := gin.Default()
 	mainRouter.POST("/api/createBirthday", r.CreateBirthday)
 	mainRouter.GET("/api/getBirthday", r.GetBirthday)
+	mainRouter.GET("/api/getAllBirthday", r.GetAllBirthday)
 	mainRouter.POST("/api/updateBirthday", r.UpdateBirthday)
 	mainRouter.DELETE("/api/deleteBirthday", r.DeleteBirthday)
 
+	mainRouter.Use(
+		cors.New(corsRouterConfig()),
+	)
 	err := mainRouter.Run(":" + routerPort)
 	if err != nil {
 		log.Fatalln("failed to run api-gateway router. \nerror: ", err)
