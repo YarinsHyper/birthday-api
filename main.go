@@ -105,10 +105,10 @@ func (r *Router) GetBirthday(c *gin.Context) {
 }
 
 //GetAllBirthday gets all birthday objects
-func (r *Router) GetAllBirthday(c *gin.Context) {
+func (r *Router) GetAllBirthdays(c *gin.Context) {
 	var code = 200
-	request := &bpb.GetAllBirthdayRequest{}
-	res, err := r.client.GetAllBirthday(c, request)
+	request := &bpb.GetAllBirthdaysRequest{}
+	res, err := r.client.GetAllBirthdays(c, request)
 	if err != nil {
 		code = 404
 		fmt.Println("get all birthday error.\n", err)
@@ -155,15 +155,17 @@ func main() {
 	r.client = initClientConnection()
 
 	mainRouter := gin.Default()
-	mainRouter.POST("/api/createBirthday", r.CreateBirthday)
-	mainRouter.GET("/api/getBirthday", r.GetBirthday)
-	mainRouter.GET("/api/getAllBirthday", r.GetAllBirthday)
-	mainRouter.POST("/api/updateBirthday", r.UpdateBirthday)
-	mainRouter.DELETE("/api/deleteBirthday", r.DeleteBirthday)
-
+	
 	mainRouter.Use(
 		cors.New(corsRouterConfig()),
 	)
+
+	mainRouter.POST("/api/createBirthday", r.CreateBirthday)
+	mainRouter.GET("/api/getBirthday", r.GetBirthday)
+	mainRouter.GET("/api/getAllBirthdays", r.GetAllBirthdays)
+	mainRouter.POST("/api/updateBirthday", r.UpdateBirthday)
+	mainRouter.DELETE("/api/deleteBirthday", r.DeleteBirthday)
+	
 	err := mainRouter.Run(":" + routerPort)
 	if err != nil {
 		log.Fatalln("failed to run api-gateway router. \nerror: ", err)
