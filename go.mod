@@ -7,7 +7,8 @@ require (
 	github.com/gin-gonic/gin v1.7.2
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/yarinBenisty/birthday-service v0.0.0-20210701140258-7b3a6c621156
+	github.com/spf13/viper v1.8.1 // indirect
+	github.com/yarinBenisty/birthday-service v0.0.0-20210704085704-d4f1eaf51e14 // indirect
 	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0 // indirect
 )

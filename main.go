@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	"github.com/yarinBenisty/api-gateway/util"
 	bpb "github.com/yarinBenisty/birthday-service/proto"
 	"google.golang.org/grpc"
 )
@@ -30,12 +30,13 @@ type Router struct {
 // to the bd-service client through the proto file
 func initClientConnection() bpb.BirthdayFunctionsClient {
 
-	envError := godotenv.Load()
-	if envError != nil {
-		log.Fatal("Error loading .env file! error: ", envError)
+	// Loading the dotenv parameters
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Fatal("cannot load config:", err)
 	}
 
-	address := os.Getenv("ADDRESS") + os.Getenv("PORT")
+	address := config.Address + config.Port
 	conn, err := grpc.Dial(
 		address,
 		grpc.WithInsecure(),
@@ -46,7 +47,6 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 		log.Fatalln("connection error: ", err)
 		os.Exit(4)
 	}
-	// defer conn.Close()
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
 
@@ -104,14 +104,14 @@ func (r *Router) GetBirthday(c *gin.Context) {
 	c.JSON(code, res)
 }
 
-//GetAllBirthday gets all birthday objects
+//GetAllBirthdays gets all birthday objects
 func (r *Router) GetAllBirthdays(c *gin.Context) {
 	var code = 200
 	request := &bpb.GetAllBirthdaysRequest{}
 	res, err := r.client.GetAllBirthdays(c, request)
 	if err != nil {
 		code = 404
-		fmt.Println("get all birthday error.\n", err)
+		fmt.Println("get all birthdays error.\n", err)
 		c.String(code, "get all birthday method failed. \nerror: %s", err)
 	}
 	c.JSON(code, res)
@@ -145,17 +145,17 @@ func (r *Router) DeleteBirthday(c *gin.Context) {
 
 func main() {
 
-	envError := godotenv.Load()
-	if envError != nil {
-		log.Fatal("Error loading .env file! error: ", envError)
+	// Loading the dotenv parameters
+	config, err := util.LoadConfig(".")
+	if err != nil {
+		log.Fatal("cannot load config:", err)
 	}
-	routerPort := os.Getenv("ROUTER_PORT")
+	routerPort := config.RouterPort
 
 	r := &Router{}
 	r.client = initClientConnection()
 
 	mainRouter := gin.Default()
-	
 	mainRouter.Use(
 		cors.New(corsRouterConfig()),
 	)
@@ -165,8 +165,8 @@ func main() {
 	mainRouter.GET("/api/getAllBirthdays", r.GetAllBirthdays)
 	mainRouter.POST("/api/updateBirthday", r.UpdateBirthday)
 	mainRouter.DELETE("/api/deleteBirthday", r.DeleteBirthday)
-	
-	err := mainRouter.Run(":" + routerPort)
+
+	err = mainRouter.Run(":" + routerPort)
 	if err != nil {
 		log.Fatalln("failed to run api-gateway router. \nerror: ", err)
 	}
