@@ -7,9 +7,8 @@ import (
 // Config is used to declare every variable in
 // app.env file in order to use it in go files
 type Config struct {
-	Port       string `mapstructure:"PORT"`
-	RouterPort string `mapstructure:"ROUTER_PORT"`
-	Address    string `mapstructure:"ADDRESS"`
+	GrpcRouterPort         string `mapstructure:"GRPC_ROUTER_PORT"`
+	BirthdayServiceAddress string `mapstructure:"BD_SERVICE_ADDRESS"`
 }
 
 // LoadConfig loads all variables from app.env file

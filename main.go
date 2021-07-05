@@ -35,7 +35,7 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 		log.Fatal("cannot load config:", err)
 	}
 
-	address := config.Address + config.Port
+	address := config.BirthdayServiceAddress
 	conn, err := grpc.Dial(
 		address,
 		grpc.WithInsecure(),
@@ -139,7 +139,7 @@ func main() {
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
-	routerPort := config.RouterPort
+	routerPort := config.GrpcRouterPort
 
 	r := &Router{}
 	r.client = initClientConnection()
