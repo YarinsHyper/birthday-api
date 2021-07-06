@@ -116,7 +116,7 @@ func (r *Router) GetAllBirthdays(c *gin.Context) {
 
 // DeleteBirthday deletes a birthday object by personal number
 func (r *Router) DeleteBirthday(c *gin.Context) {
-	request := &bpb.DeleteBirthdayRequest{PersonalNumber: PersonalNumber}
+	request := &bpb.DeleteBirthdayRequest{PersonalNumber: c.Query(PersonalNumber)}
 	res, err := r.client.DeleteBirthday(c, request)
 	if err != nil {
 		log.Fatal("delete birthday error: ", err)
