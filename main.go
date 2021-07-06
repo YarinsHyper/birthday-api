@@ -13,9 +13,12 @@ import (
 )
 
 const (
-	name           = "name"
-	personalNumber = "personalNumber"
-	date           = "date"
+	// Name parameter
+	Name = "name"
+	// PersonalNumber parameter
+	PersonalNumber = "personalNumber"
+	// Date parameter
+	Date = "date"
 )
 
 // Router that's connecting to the client
@@ -73,24 +76,25 @@ func corsRouterConfig() cors.Config {
 	return corsConfig
 }
 
-//CreateBirthday inserts a birthday object
+// CreateBirthday inserts a birthday object if it
+// doesn't exist. if it does, its being overritten
 func (r *Router) CreateBirthday(c *gin.Context) {
 	request := &bpb.CreateBirthdayRequest{
-		PersonalNumber: c.Request.FormValue(personalNumber),
-		Name:           c.Request.FormValue(name),
-		Date:           c.Request.FormValue(date),
+		PersonalNumber: c.Request.FormValue(PersonalNumber),
+		Name:           c.Request.FormValue(Name),
+		Date:           c.Request.FormValue(Date),
 	}
 	res, err := r.client.CreateBirthday(c, request)
 	if err != nil {
 		log.Fatal("create birthday error: ", err)
 		c.String(400, "create birthday method failed. \nerror: %s", err)
 	}
-	c.JSON(201, res)
+	c.JSON(200, res)
 }
 
-// GetBirthday get a birthday object
+// GetBirthday returns a birthday object
 func (r *Router) GetBirthday(c *gin.Context) {
-	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Query(personalNumber)}
+	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Query(PersonalNumber)}
 	res, err := r.client.GetBirthday(c, request)
 	if err != nil {
 		log.Fatal("get birthday error: ", err)
@@ -99,7 +103,7 @@ func (r *Router) GetBirthday(c *gin.Context) {
 	c.JSON(200, res)
 }
 
-//GetAllBirthdays gets all birthday objects
+//GetAllBirthdays returns all birthday objects
 func (r *Router) GetAllBirthdays(c *gin.Context) {
 	request := &bpb.GetAllBirthdaysRequest{}
 	res, err := r.client.GetAllBirthdays(c, request)
@@ -110,20 +114,9 @@ func (r *Router) GetAllBirthdays(c *gin.Context) {
 	c.JSON(200, res)
 }
 
-// UpdateBirthday updates a birthday object by personalNumber
-func (r *Router) UpdateBirthday(c *gin.Context) {
-	request := &bpb.UpdateBirthdayRequest{PersonalNumber: personalNumber, Name: name, Date: date}
-	res, err := r.client.UpdateBirthday(c, request)
-	if err != nil {
-		log.Fatal("update birthday error: ", err)
-		c.String(400, "update birthday method failed. \nerror: %s", err)
-	}
-	c.JSON(201, res)
-}
-
-// DeleteBirthday deletes a certain birthday object by personal number
+// DeleteBirthday deletes a birthday object by personal number
 func (r *Router) DeleteBirthday(c *gin.Context) {
-	request := &bpb.DeleteBirthdayRequest{PersonalNumber: personalNumber}
+	request := &bpb.DeleteBirthdayRequest{PersonalNumber: PersonalNumber}
 	res, err := r.client.DeleteBirthday(c, request)
 	if err != nil {
 		log.Fatal("delete birthday error: ", err)
@@ -152,7 +145,7 @@ func main() {
 	mainRouter.POST("/api/createBirthday", r.CreateBirthday)
 	mainRouter.GET("/api/getBirthday", r.GetBirthday)
 	mainRouter.GET("/api/getAllBirthdays", r.GetAllBirthdays)
-	mainRouter.POST("/api/updateBirthday", r.UpdateBirthday)
+	mainRouter.POST("/api/updateBirthday", r.CreateBirthday)
 	mainRouter.DELETE("/api/deleteBirthday", r.DeleteBirthday)
 
 	err = mainRouter.Run(":" + routerPort)
