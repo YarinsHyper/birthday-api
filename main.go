@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"github.com/yarinBenisty/api-gateway/util"
 	bpb "github.com/yarinBenisty/birthday-service/proto"
 	"google.golang.org/grpc"
@@ -33,12 +34,12 @@ type Router struct {
 func initClientConnection() bpb.BirthdayFunctionsClient {
 
 	// Loading the dotenv parameters
-	config, err := util.LoadConfig(".")
+	err := util.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
 
-	address := config.BirthdayServiceAddress
+	address := viper.GetString(util.BirthdayServiceAddress)
 	conn, err := grpc.Dial(
 		address,
 		grpc.WithInsecure(),
@@ -128,11 +129,11 @@ func (r *Router) DeleteBirthday(c *gin.Context) {
 func main() {
 
 	// Loading the dotenv parameters
-	config, err := util.LoadConfig(".")
+	err := util.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
-	routerPort := config.GrpcRouterPort
+	routerPort := viper.GetString(util.GrpcRouterPort)
 
 	r := &Router{}
 	r.client = initClientConnection()
