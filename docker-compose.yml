@@ -9,8 +9,6 @@ services:
     environment:
         MONGO_INITDB_ROOT_USERNAME: root
         MONGO_INITDB_ROOT_PASSWORD: example
-    # volumes:
-    #     - "./data/db:/data/db"
     
   mongo-express:
     image: mongo-express
@@ -33,7 +31,6 @@ services:
       - mongo
       
   api-gateway:
-    # image: api-gateway:latest
     build: .
     env_file:
       - ./app.env

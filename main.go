@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -14,12 +16,12 @@ import (
 )
 
 const (
-	// Name parameter
-	Name = "name"
-	// PersonalNumber parameter
-	PersonalNumber = "personalNumber"
-	// Date parameter
-	Date = "date"
+	// ParamName parameter
+	ParamName = "name"
+	// ParamPersonalNumber parameter
+	ParamPersonalNumber = "personalNumber"
+	// ParamDate parameter
+	ParamDate = "date"
 )
 
 // Router that's connecting to the client
@@ -37,6 +39,7 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 	err := util.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
+		os.Exit(4)
 	}
 
 	address := viper.GetString(util.BirthdayServiceAddress)
@@ -46,10 +49,6 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 		grpc.FailOnNonTempDialError(true),
 		grpc.WithBlock(),
 	)
-	if err != nil {
-		log.Fatalln("connection error: ", err)
-		os.Exit(4)
-	}
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
 
@@ -81,27 +80,30 @@ func corsRouterConfig() cors.Config {
 // doesn't exist. if it does, its being overritten
 func (r *Router) CreateBirthday(c *gin.Context) {
 	request := &bpb.CreateBirthdayRequest{
-		PersonalNumber: c.Request.FormValue(PersonalNumber),
-		Name:           c.Request.FormValue(Name),
-		Date:           c.Request.FormValue(Date),
+		PersonalNumber: c.Request.FormValue(ParamPersonalNumber),
+		Name:           c.Request.FormValue(ParamName),
+		Date:           c.Request.FormValue(ParamDate),
 	}
 	res, err := r.client.CreateBirthday(c, request)
 	if err != nil {
+		c.String(http.StatusBadRequest, "create birthday method failed. \nerror: %s", err)
 		log.Fatal("create birthday error: ", err)
-		c.String(400, "create birthday method failed. \nerror: %s", err)
+		os.Exit(4)
 	}
-	c.JSON(200, res)
+	c.JSON(http.StatusOK, res)
 }
 
 // GetBirthday returns a birthday object
 func (r *Router) GetBirthday(c *gin.Context) {
-	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Query(PersonalNumber)}
+	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Param(ParamPersonalNumber)}
+	fmt.Println(request)
 	res, err := r.client.GetBirthday(c, request)
 	if err != nil {
+		c.String(http.StatusBadRequest, "get birthday method failed. \nerror: %s", err)
 		log.Fatal("get birthday error: ", err)
-		c.String(404, "get birthday method failed. \nerror: %s", err)
+		os.Exit(4)
 	}
-	c.JSON(200, res)
+	c.JSON(http.StatusOK, res)
 }
 
 //GetAllBirthdays returns all birthday objects
@@ -109,19 +111,21 @@ func (r *Router) GetAllBirthdays(c *gin.Context) {
 	request := &bpb.GetAllBirthdaysRequest{}
 	res, err := r.client.GetAllBirthdays(c, request)
 	if err != nil {
+		c.String(http.StatusBadRequest, "get all birthday method failed. \nerror: %s", err)
 		log.Fatal("get all birthdays error.\n", err)
-		c.String(404, "get all birthday method failed. \nerror: %s", err)
+		os.Exit(4)
 	}
-	c.JSON(200, res)
+	c.JSON(http.StatusOK, res)
 }
 
 // DeleteBirthday deletes a birthday object by personal number
 func (r *Router) DeleteBirthday(c *gin.Context) {
-	request := &bpb.DeleteBirthdayRequest{PersonalNumber: c.Query(PersonalNumber)}
+	request := &bpb.DeleteBirthdayRequest{PersonalNumber: c.Param(ParamPersonalNumber)}
 	res, err := r.client.DeleteBirthday(c, request)
 	if err != nil {
+		c.String(http.StatusConflict, "delete birthday method failed. \nerror: %s", err)
 		log.Fatal("delete birthday error: ", err)
-		c.String(404, "delete birthday method failed. \nerror: %s", err)
+		os.Exit(4)
 	}
 	c.JSON(204, res)
 }
@@ -132,6 +136,7 @@ func main() {
 	err := util.LoadConfig()
 	if err != nil {
 		log.Fatal("cannot load config:", err)
+		os.Exit(4)
 	}
 	routerPort := viper.GetString(util.GrpcRouterPort)
 
@@ -143,14 +148,15 @@ func main() {
 		cors.New(corsRouterConfig()),
 	)
 
-	mainRouter.POST("/api/createBirthday", r.CreateBirthday)
-	mainRouter.GET("/api/getBirthday", r.GetBirthday)
-	mainRouter.GET("/api/getAllBirthdays", r.GetAllBirthdays)
-	mainRouter.POST("/api/updateBirthday", r.CreateBirthday)
-	mainRouter.DELETE("/api/deleteBirthday", r.DeleteBirthday)
+	mainRouter.POST("/api/birthday", r.CreateBirthday)
+	mainRouter.GET("/api/birthday/:personalNumber", r.GetBirthday)
+	mainRouter.GET("/api/birthdays", r.GetAllBirthdays)
+	mainRouter.PUT("/api/birthday", r.CreateBirthday)
+	mainRouter.DELETE("/api/birthday/:personalNumber", r.DeleteBirthday)
 
 	err = mainRouter.Run(":" + routerPort)
 	if err != nil {
 		log.Fatalln("failed to run api-gateway router. \nerror: ", err)
+		os.Exit(4)
 	}
 }
