@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-contrib/cors"
@@ -24,6 +22,13 @@ const (
 	ParamDate = "date"
 )
 
+// Birthday is struct of bd-object
+type Birthday struct {
+	Name           string `json:"name"`
+	Date           string `json:"date"`
+	PersonalNumber string `json:"personalNumber"`
+}
+
 // Router that's connecting to the client
 // functions in the bd-service proto file
 type Router struct {
@@ -35,13 +40,6 @@ type Router struct {
 // to the bd-service client through the proto file
 func initClientConnection() bpb.BirthdayFunctionsClient {
 
-	// Loading the dotenv parameters
-	err := util.LoadConfig()
-	if err != nil {
-		log.Fatal("cannot load config:", err)
-		os.Exit(4)
-	}
-
 	address := viper.GetString(util.BirthdayServiceAddress)
 	conn, err := grpc.Dial(
 		address,
@@ -49,6 +47,9 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 		grpc.FailOnNonTempDialError(true),
 		grpc.WithBlock(),
 	)
+	if err != nil {
+		fmt.Println("failed to get mongo connection parameters")
+	}
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
 
@@ -79,29 +80,35 @@ func corsRouterConfig() cors.Config {
 // CreateBirthday inserts a birthday object if it
 // doesn't exist. if it does, its being overritten
 func (r *Router) CreateBirthday(c *gin.Context) {
+
+	var birthdayFilter Birthday
 	request := &bpb.CreateBirthdayRequest{
 		PersonalNumber: c.Request.FormValue(ParamPersonalNumber),
 		Name:           c.Request.FormValue(ParamName),
 		Date:           c.Request.FormValue(ParamDate),
 	}
+
+	if bindErr := c.Bind(&birthdayFilter); bindErr != nil {
+		c.String(http.StatusBadRequest, "create birthday method failed. \nerror: %s", bindErr)
+		return
+	}
+
 	res, err := r.client.CreateBirthday(c, request)
 	if err != nil {
-		c.String(http.StatusBadRequest, "create birthday method failed. \nerror: %s", err)
-		log.Fatal("create birthday error: ", err)
-		os.Exit(4)
+		c.String(http.StatusBadRequest, "failed creating birthday")
+		return
 	}
+
 	c.JSON(http.StatusOK, res)
 }
 
 // GetBirthday returns a birthday object
 func (r *Router) GetBirthday(c *gin.Context) {
 	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Param(ParamPersonalNumber)}
-	fmt.Println(request)
 	res, err := r.client.GetBirthday(c, request)
 	if err != nil {
 		c.String(http.StatusBadRequest, "get birthday method failed. \nerror: %s", err)
-		log.Fatal("get birthday error: ", err)
-		os.Exit(4)
+		return
 	}
 	c.JSON(http.StatusOK, res)
 }
@@ -112,8 +119,7 @@ func (r *Router) GetAllBirthdays(c *gin.Context) {
 	res, err := r.client.GetAllBirthdays(c, request)
 	if err != nil {
 		c.String(http.StatusBadRequest, "get all birthday method failed. \nerror: %s", err)
-		log.Fatal("get all birthdays error.\n", err)
-		os.Exit(4)
+		return
 	}
 	c.JSON(http.StatusOK, res)
 }
@@ -124,19 +130,18 @@ func (r *Router) DeleteBirthday(c *gin.Context) {
 	res, err := r.client.DeleteBirthday(c, request)
 	if err != nil {
 		c.String(http.StatusConflict, "delete birthday method failed. \nerror: %s", err)
-		log.Fatal("delete birthday error: ", err)
-		os.Exit(4)
+		return
 	}
-	c.JSON(204, res)
+	c.JSON(http.StatusNoContent, res)
 }
 
 func main() {
 
-	// Loading the dotenv parameters
+	// Loading dotenv file parameters
 	err := util.LoadConfig()
 	if err != nil {
-		log.Fatal("cannot load config:", err)
-		os.Exit(4)
+		fmt.Println("cannot load config:", err)
+		return
 	}
 	routerPort := viper.GetString(util.GrpcRouterPort)
 
@@ -156,7 +161,7 @@ func main() {
 
 	err = mainRouter.Run(":" + routerPort)
 	if err != nil {
-		log.Fatalln("failed to run api-gateway router. \nerror: ", err)
-		os.Exit(4)
+		fmt.Println("failed to run api gateway. \nrouter error: ", err)
+		return
 	}
 }
