@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-contrib/cors"
@@ -56,7 +55,6 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 	)
 	if err != nil {
 		log.Fatal("failed to get mongo connection parameters")
-		os.Exit(4)
 	}
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
@@ -94,11 +92,6 @@ func (r *Router) CreateBirthday(c *gin.Context) {
 	if bindErr := c.Bind(&birthdayFilter); bindErr != nil {
 		c.String(http.StatusBadRequest, "create birthday method failed. \nerror: %s", bindErr)
 		return
-	}
-	birthdayFilter = Birthday{
-		Name:           strings.TrimSpace(c.Request.FormValue(ParamName)),
-		Date:           strings.TrimSpace(c.Request.FormValue(ParamDate)),
-		PersonalNumber: strings.TrimSpace(c.Request.FormValue(ParamPersonalNumber)),
 	}
 	request := &bpb.CreateBirthdayRequest{
 		PersonalNumber: birthdayFilter.PersonalNumber,
