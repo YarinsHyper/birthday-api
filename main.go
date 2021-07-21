@@ -2,15 +2,21 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	gwruntime "github.com/grpc-ecosystem/grpc-gateway/runtime"
+	loggermiddleware "github.com/meateam/api-gateway/logger"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/yarinBenisty/api-gateway/util"
 	bpb "github.com/yarinBenisty/birthday-service/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -22,21 +28,22 @@ const (
 	ParamDate = "date"
 )
 
-// Birthday is struct of bd-object
+// Birthday is struct of birthday-object
 type Birthday struct {
 	Name           string `json:"name"`
 	Date           string `json:"date"`
 	PersonalNumber string `json:"personalNumber"`
 }
 
-// Router that's connecting to the client
+// Router connecting to the client
 // functions in the bd-service proto file
 type Router struct {
 	client bpb.BirthdayFunctionsClient
 	bpb.UnimplementedBirthdayFunctionsServer
+	logger *logrus.Logger
 }
 
-// Func that creates a new client and connects
+// initClientConnection creates a new client and connects
 // to the bd-service client through the proto file
 func initClientConnection() bpb.BirthdayFunctionsClient {
 
@@ -48,7 +55,8 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 		grpc.WithBlock(),
 	)
 	if err != nil {
-		fmt.Println("failed to get mongo connection parameters")
+		log.Fatal("failed to get mongo connection parameters")
+		os.Exit(4)
 	}
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
@@ -57,6 +65,7 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 }
 
 func corsRouterConfig() cors.Config {
+
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AddExposeHeaders("x-uploadid")
 	corsConfig.AllowAllOrigins = false
@@ -82,20 +91,25 @@ func corsRouterConfig() cors.Config {
 func (r *Router) CreateBirthday(c *gin.Context) {
 
 	var birthdayFilter Birthday
-	request := &bpb.CreateBirthdayRequest{
-		PersonalNumber: c.Request.FormValue(ParamPersonalNumber),
-		Name:           c.Request.FormValue(ParamName),
-		Date:           c.Request.FormValue(ParamDate),
-	}
-
 	if bindErr := c.Bind(&birthdayFilter); bindErr != nil {
 		c.String(http.StatusBadRequest, "create birthday method failed. \nerror: %s", bindErr)
 		return
 	}
+	birthdayFilter = Birthday{
+		Name:           strings.TrimSpace(c.Request.FormValue(ParamName)),
+		Date:           strings.TrimSpace(c.Request.FormValue(ParamDate)),
+		PersonalNumber: strings.TrimSpace(c.Request.FormValue(ParamPersonalNumber)),
+	}
+	request := &bpb.CreateBirthdayRequest{
+		PersonalNumber: birthdayFilter.PersonalNumber,
+		Name:           birthdayFilter.Name,
+		Date:           birthdayFilter.Date,
+	}
 
 	res, err := r.client.CreateBirthday(c, request)
 	if err != nil {
-		c.String(http.StatusBadRequest, "failed creating birthday")
+		httpStatusCode := gwruntime.HTTPStatusFromCode(status.Code(err))
+		loggermiddleware.LogError(r.logger, c.AbortWithError(httpStatusCode, err))
 		return
 	}
 
@@ -104,10 +118,12 @@ func (r *Router) CreateBirthday(c *gin.Context) {
 
 // GetBirthday returns a birthday object
 func (r *Router) GetBirthday(c *gin.Context) {
+
 	request := &bpb.GetBirthdayRequest{PersonalNumber: c.Param(ParamPersonalNumber)}
 	res, err := r.client.GetBirthday(c, request)
 	if err != nil {
-		c.String(http.StatusBadRequest, "get birthday method failed. \nerror: %s", err)
+		httpStatusCode := gwruntime.HTTPStatusFromCode(status.Code(err))
+		loggermiddleware.LogError(r.logger, c.AbortWithError(httpStatusCode, err))
 		return
 	}
 	c.JSON(http.StatusOK, res)
@@ -118,7 +134,8 @@ func (r *Router) GetAllBirthdays(c *gin.Context) {
 	request := &bpb.GetAllBirthdaysRequest{}
 	res, err := r.client.GetAllBirthdays(c, request)
 	if err != nil {
-		c.String(http.StatusBadRequest, "get all birthday method failed. \nerror: %s", err)
+		httpStatusCode := gwruntime.HTTPStatusFromCode(status.Code(err))
+		loggermiddleware.LogError(r.logger, c.AbortWithError(httpStatusCode, err))
 		return
 	}
 	c.JSON(http.StatusOK, res)
@@ -129,7 +146,8 @@ func (r *Router) DeleteBirthday(c *gin.Context) {
 	request := &bpb.DeleteBirthdayRequest{PersonalNumber: c.Param(ParamPersonalNumber)}
 	res, err := r.client.DeleteBirthday(c, request)
 	if err != nil {
-		c.String(http.StatusConflict, "delete birthday method failed. \nerror: %s", err)
+		httpStatusCode := gwruntime.HTTPStatusFromCode(status.Code(err))
+		loggermiddleware.LogError(r.logger, c.AbortWithError(httpStatusCode, err))
 		return
 	}
 	c.JSON(http.StatusNoContent, res)
@@ -156,7 +174,6 @@ func main() {
 	mainRouter.POST("/api/birthday", r.CreateBirthday)
 	mainRouter.GET("/api/birthday/:personalNumber", r.GetBirthday)
 	mainRouter.GET("/api/birthdays", r.GetAllBirthdays)
-	mainRouter.PUT("/api/birthday", r.CreateBirthday)
 	mainRouter.DELETE("/api/birthday/:personalNumber", r.DeleteBirthday)
 
 	err = mainRouter.Run(":" + routerPort)
