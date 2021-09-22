@@ -47,6 +47,7 @@ type Router struct {
 func initClientConnection() bpb.BirthdayFunctionsClient {
 
 	address := viper.GetString(util.BirthdayServiceAddress)
+	fmt.Printf("connecting to %v\n", address)
 	conn, err := grpc.Dial(
 		address,
 		grpc.WithInsecure(),
@@ -54,10 +55,11 @@ func initClientConnection() bpb.BirthdayFunctionsClient {
 		grpc.WithBlock(),
 	)
 	if err != nil {
-		log.Fatal("failed to get mongo connection parameters")
+		log.Fatalf("failed to connect to birthday service %v", err)
 	}
 
 	client := bpb.NewBirthdayFunctionsClient(conn)
+	fmt.Printf("connected succesfully to birthday servicve!!")
 
 	return client
 }

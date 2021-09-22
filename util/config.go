@@ -24,7 +24,7 @@ type Config struct {
 // LoadConfig loads all variables from app.env file
 func LoadConfig() (err error) {
 	viper.SetDefault(GrpcRouterPort, "9000")
-	viper.SetDefault(BirthdayServiceAddress, "localhost:8000")
+	viper.SetDefault(BirthdayServiceAddress, "birthday-service:8000")
 	viper.SetDefault(ConfigMongoConnectionString, "mongodb://root:example@0.0.0.0:27017")
 	viper.AutomaticEnv()
 
